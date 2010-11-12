@@ -1,0 +1,200 @@
+<?php
+// $Id: boolean.module,v 1.0 2010/11/08 07:00:00 solotandem Exp $
+
+/**
+ * @file
+ * Defines boolean field type.
+ *
+ * @author Jim Berry ("boombatower", http://drupal.org/user/240748)
+ */
+
+/**
+ * Implements hook_help().
+ */
+function boolean_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#boolean':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Boolean module defines a boolean field type for the Field module. See the <a href="@field-help">Field module help page</a> for more information about fields.', array('@field-help' => url('admin/help/field'))) . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_field_info().
+ */
+function boolean_field_info() {
+  return array(
+    'number_boolean' => array(
+      'label' => t('Boolean - Us'),
+      'description' => t('This field stores simple on/off or yes/no options.'),
+      'instance_settings' => array('prefix' => '', 'suffix' => ''),
+      'default_widget' => 'boolean_checkbox',
+      'default_formatter' => 'number_boolean',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_settings_form().
+ */
+function boolean_field_settings_form($field, $instance, $has_data) {
+//   $settings = $field['settings'];
+  $form = array();
+  return $form;
+}
+
+/**
+ * Implements hook_field_instance_settings_form().
+ */
+function boolean_field_instance_settings_form($field, $instance) {
+  $settings = $instance['settings'];
+
+  $form['prefix'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Prefix'),
+    '#default_value' => $settings['prefix'],
+    '#size' => 60,
+    '#description' => t("Define a string that should be prefixed to the value, like '$ ' or '&euro; '. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+  );
+  $form['suffix'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Suffix'),
+    '#default_value' => $settings['suffix'],
+    '#size' => 60,
+    '#description' => t("Define a string that should be suffixed to the value, like ' m', ' kb/s'. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function boolean_field_is_empty($item, $field) {
+  if (empty($item['value']) && (string) $item['value'] !== '0') {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function boolean_field_formatter_info() {
+  return array(
+    'number_boolean' => array(
+      'label' => t('Default'),
+      'field types' => array('number_boolean'),
+      'settings' =>  array(
+        'prefix_suffix' => TRUE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function boolean_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $element['prefix_suffix'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display prefix and suffix.'),
+    '#default_value' => $settings['prefix_suffix'],
+  );
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function boolean_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $with = $settings['prefix_suffix'] ? 'with' : 'without';
+  $summary = t('Display !with prefix and suffix.', array('!with' => $with));
+
+  return $summary;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function boolean_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'number_boolean':
+      $display_delta = count($items) > 1;
+      foreach ($items as $delta => $item) {
+        if ($item['value']) {
+          if ($settings['prefix_suffix']) {
+            $prefix = isset($instance['settings']['prefix']) ? $instance['settings']['prefix'] . ' ' : 'Instance ';
+            $suffix = isset($instance['settings']['suffix']) ? ' ' . $instance['settings']['suffix'] : '';
+          }
+          else {
+            $prefix = 'Instance ';
+            $suffix = '';
+          }
+          $output = $prefix . ($display_delta ? $delta : '') . $suffix;
+          $element[$delta] = array('#markup' => $output);
+        }
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function boolean_field_widget_info() {
+  return array(
+    'boolean_checkbox' => array(
+      'label' => t('Checkbox'),
+      'field types' => array('number_boolean'),
+      'behaviors' => array(
+        // @todo Is FIELD_BEHAVIOR_CUSTOM what causes the list_boolean field not
+        // to have multiple values?
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function boolean_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $value = isset($items[$delta]['value']) ? $items[$delta]['value'] : '';
+  $display_delta = count($items) > 1;
+
+  $element += array(
+    '#type' => 'checkbox',
+    '#default_value' => (isset($value) && $value) ? 1 : 0,
+  );
+
+  // Add prefix and suffix.
+  $prefix = isset($instance['settings']['prefix']) ? $instance['settings']['prefix'] . ' ' : '';
+  $suffix = isset($instance['settings']['suffix']) ? ' ' . $instance['settings']['suffix'] : '';
+
+  // Set the title.
+  $element['#title'] = $prefix . ($display_delta ? $delta : '') . $suffix;
+
+  return array('value' => $element);
+}
+
+/**
+ * Implements hook_field_widget_error().
+ */
+function boolean_field_widget_error($element, $error, $form, &$form_state) {
+  form_error($element['value'], $error['message']);
+}

@@ -1,0 +1,26 @@
+<?php
+// $Id: boolean.install,v 1.0 2010/11/08 07:00:00 solotandem Exp $
+
+/**
+ * @file
+ * Install, update and uninstall functions for the boolean module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function boolean_field_schema($field) {
+  switch ($field['type']) {
+    case 'number_boolean' :
+      $columns = array(
+        'value' => array(
+          'type' => 'int',
+          'not null' => FALSE,
+        ),
+      );
+      break;
+  }
+  return array(
+    'columns' => $columns,
+  );
+}
