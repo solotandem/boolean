@@ -15,7 +15,8 @@ function boolean_field_schema($field) {
       $columns = array(
         'value' => array(
           'type' => 'int',
-          'not null' => FALSE,
+          'not null' => TRUE,
+          'default' => -1,
         ),
       );
       break;
