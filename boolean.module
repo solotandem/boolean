@@ -30,9 +30,13 @@ function boolean_help($path, $arg) {
 function boolean_field_info() {
   return array(
     'number_boolean' => array(
-      'label' => t('Boolean - Us'),
-      'description' => t('This field stores simple on/off or yes/no options.'),
-      'instance_settings' => array('prefix' => '', 'suffix' => ''),
+      'label' => t('Boolean (3-states'),
+      'description' => t('This field stores simple on/off or yes/no options along with a not set state.'),
+      'instance_settings' => array(
+        'none' => array('prefix' => '', 'suffix' => ''),
+        'false' => array('prefix' => '', 'suffix' => ''),
+        'true' => array('prefix' => '', 'suffix' => ''),
+      ),
       'default_widget' => 'boolean_checkbox',
       'default_formatter' => 'number_boolean',
     ),
@@ -50,24 +54,75 @@ function boolean_field_settings_form($field, $instance, $has_data) {
 
 /**
  * Implements hook_field_instance_settings_form().
+ *
+ * Initially build the form without the vertical tabs so that the instance
+ * settings form items are parented like instance[settings][true][prefix]. If we
+ * try to build it all at once, then the parenting is nested two more levels
+ * like instance[settings][state][tabs][true][prefix] and does not line up with
+ * the instance settings as defined in the hook_field_info().
+ *
+ * Then use an #after_build handler to insert the fieldset and vertical tabs.
  */
 function boolean_field_instance_settings_form($field, $instance) {
   $settings = $instance['settings'];
 
-  $form['prefix'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Prefix'),
-    '#default_value' => $settings['prefix'],
-    '#size' => 60,
-    '#description' => t("Define a string that should be prefixed to the value, like '$ ' or '&euro; '. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+  foreach (boolean_value_info() as $state) {
+    $form[$state] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Strings to display when value is ' . $state,
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#tree' => TRUE,
+      '#weight' => 5,
+    );
+    $form[$state]['prefix'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Prefix'),
+      '#default_value' => $settings[$state]['prefix'],
+      '#size' => 60,
+      '#description' => t("The string to be prefixed to the 'delta' value. Leave blank for none."),
+    );
+    $form[$state]['suffix'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Suffix'),
+      '#default_value' => $settings[$state]['suffix'],
+      '#size' => 60,
+      '#description' => t("The string to be suffixed to the 'delta' value. Leave blank for none."),
+    );
+  }
+  $form['#after_build'][] = 'boolean_field_instance_settings_form_after_build';
+
+  return $form;
+}
+
+/**
+ * Form handler for after_build.
+ *
+ * @see boolean_field_instance_settings_form()
+ */
+function boolean_field_instance_settings_form_after_build($element, $form_state) {
+  $string = 'The display value of this field is equal to its "delta" value surrounded by the prefix and suffix strings defined below.' .
+            ' The "delta" value is only displayed if the "number of values" for this field is greater than one.' .
+            ' For example, if there are five values of this field, then the delta values are numbered zero through four.' .
+            ' The corresponding display values are "prefix delta suffix."';
+
+  // @todo At this point in the processing, the fieldset is not collapsible.
+  $form['state'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Display strings',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+    '#weight' => 5,
+    '#description' => t($string),
   );
-  $form['suffix'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Suffix'),
-    '#default_value' => $settings['suffix'],
-    '#size' => 60,
-    '#description' => t("Define a string that should be suffixed to the value, like ' m', ' kb/s'. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+  $form['state']['tabs'] = array(
+    '#type' => 'vertical_tabs',
+    '#default_tab' => 'edit-true',
   );
+  foreach (boolean_value_info() as $state) {
+    $form['state']['tabs'][$state] = $element[$state];
+  }
 
   return $form;
 }
@@ -127,6 +182,13 @@ function boolean_field_formatter_settings_summary($field, $instance, $view_mode)
 }
 
 /**
+ * Returns boolean values and related strings.
+ */
+function boolean_value_info() {
+  return array(-1 => 'none', 0 => 'false', 1 => 'true');
+}
+
+/**
  * Implements hook_field_formatter_view().
  */
 function boolean_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
@@ -137,18 +199,23 @@ function boolean_field_formatter_view($entity_type, $entity, $field, $instance, 
     case 'number_boolean':
       $display_delta = count($items) > 1;
       foreach ($items as $delta => $item) {
-        if ($item['value']) {
+        $states = boolean_value_info();
+        $strings = $instance['settings'][$states[$item['value']]];
+        $class = 'state-' . $states[$item['value']];
+//         if (TRUE || $item['value']) { // @todo Do we need a check here?
           if ($settings['prefix_suffix']) {
-            $prefix = isset($instance['settings']['prefix']) ? $instance['settings']['prefix'] . ' ' : 'Instance ';
-            $suffix = isset($instance['settings']['suffix']) ? ' ' . $instance['settings']['suffix'] : '';
+            $prefix = isset($strings['prefix']) ? $strings['prefix'] . ' ' : 'Instance ';
+            $suffix = isset($strings['suffix']) ? ' ' . $strings['suffix'] : '';
           }
           else {
             $prefix = 'Instance ';
             $suffix = '';
           }
-          $output = $prefix . ($display_delta ? $delta : '') . $suffix;
-          $element[$delta] = array('#markup' => $output);
-        }
+          $output = '<span class="' . $class . '">';
+          $output .= $prefix . ($display_delta ? $delta : '') . $suffix;
+          $output .= '</span>';
+          $element[$delta] = array('#markup' => $output, '#attributes' => array('class' => 'state-' . $states[$item['value']]));
+//         }
       }
       break;
   }
@@ -199,8 +266,11 @@ function boolean_field_widget_form(&$form, &$form_state, $field, $instance, $lan
   );
 
   // Add prefix and suffix.
-  $prefix = isset($instance['settings']['prefix']) ? $instance['settings']['prefix'] . ' ' : '';
-  $suffix = isset($instance['settings']['suffix']) ? ' ' . $instance['settings']['suffix'] : '';
+  // When editing, always display the text applicable to a true state.
+  $states = boolean_value_info();
+  $strings = $instance['settings'][$states[1]]; // [$items[$delta]['value']]];
+  $prefix = isset($strings['prefix']) ? $strings['prefix'] . ' ' : '';
+  $suffix = isset($strings['suffix']) ? ' ' . $strings['suffix'] : '';
 
   // Set the title.
   $element['#title'] = $prefix . ($display_delta ? $delta : '') . $suffix;
