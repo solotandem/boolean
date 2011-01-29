@@ -1,9 +1,9 @@
-; $Id: boolean.info,v 1.0 2010/11/08 07:00:00 solotandem Exp $
+; $Id: boolean.info,v 1.1 2011/01/07 23:43:09 solotandem Exp $
 name = Boolean
 description = Defines boolean field type.
-package = Conduit
+package = Fields
 version = VERSION
 core = 7.x
 dependencies[] = field
-files[] = boolean.module
-files[] = boolean.test
+;files[] = boolean.module
+;files[] = boolean.test

@@ -1,5 +1,5 @@
 <?php
-// $Id: boolean.module,v 1.0 2010/11/08 07:00:00 solotandem Exp $
+// $Id: boolean.module,v 1.1 2011/01/07 23:43:09 solotandem Exp $
 
 /**
  * @file
@@ -291,9 +291,9 @@ function boolean_field_widget_form(&$form, &$form_state, $field, $instance, $lan
 }
 
 /**
- * Form element validation handler for options element.
+ * Form element validation handler for boolean field element.
  */
-function boolean_field_widget_validate($element, &$form_state) {
+function boolean_field_widget_validate($element, &$form_state, $form) {
   $value = $element['#value'];
 
   // Transform '0 / 1' into the 'on / off / not set' values.
@@ -308,7 +308,7 @@ function boolean_field_widget_validate($element, &$form_state) {
 }
 
 /**
- * The #value_callback for the boolean field element.
+ * Form element value callback for the boolean field element.
  */
 function boolean_field_widget_value($element, $input = FALSE, $form_state = array()) {
   if ($input === FALSE) {
