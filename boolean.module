@@ -1,5 +1,5 @@
 <?php
-// $Id: boolean.module,v 1.1 2011/01/07 23:43:09 solotandem Exp $
+// $Id: boolean.module,v 1.3 2011/01/29 16:52:38 solotandem Exp $
 
 /**
  * @file
@@ -30,7 +30,7 @@ function boolean_help($path, $arg) {
 function boolean_field_info() {
   return array(
     'number_boolean' => array(
-      'label' => t('Boolean (3-states'),
+      'label' => t('Boolean (3-states)'),
       'description' => t('This field stores simple on/off or yes/no options along with a not set state.'),
       'instance_settings' => array(
         'none' => array('prefix' => '', 'suffix' => ''),
