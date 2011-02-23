@@ -4,6 +4,8 @@
 /**
  * @file
  * Install, update and uninstall functions for the boolean module.
+ *
+ * @author Jim Berry ("solotandem", http://drupal.org/user/240748)
  */
 
 /**

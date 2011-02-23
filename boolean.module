@@ -8,7 +8,7 @@
  * The field has three states: on, off and not set. The corresponding storage
  * values are 1, 0, and -1.
  *
- * @author Jim Berry ("boombatower", http://drupal.org/user/240748)
+ * @author Jim Berry ("solotandem", http://drupal.org/user/240748)
  */
 
 /**
